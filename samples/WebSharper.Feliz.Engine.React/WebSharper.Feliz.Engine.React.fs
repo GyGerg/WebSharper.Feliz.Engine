@@ -12,72 +12,60 @@ module React =
     type AttrVal = obj
     type EventFn = obj
     
-    type ElementNode =
-        | Text of string
-        | Elt of React.Element
     
     type Node =
-        | Element of ElementNode
-        | Children of ElementNode seq
+        | Text of string
+        | El of React.Element
         | Styles of Style seq
         | Attr of string * AttrVal
         | Event of string * EventFn
 
-    let inline private elToReact (node:ElementNode) =
-        match node with
-        | Text txt -> Html.text txt
-        | Elt el -> el
     let toReact (node:Node) =
         match node with
-        | Element elt -> elToReact elt
+        | El el -> el 
+        | Text txt -> Html.text txt
         | _ -> failwithf "Not a React element"
         
-    let asNode = Elt >> Element
+    let asNode = El
     let fragment x =
         x
-        |> Seq.choose (function
-            | Element (Text txt) -> (Html.text >> Some) txt
-            | Element (Elt e) -> Some e
+        |> Seq.choose (fun node ->
+            match node with
+            | Text _ | El _ -> Some <| toReact node
             | _ -> None)
         |> ReactHelpers.Fragment
-        |> (Elt >> Element)
+        |> El
     
-    let private (|ToReactKey|) (key:string) =
-        match key with
-        | "class" -> "className"
-        | _ when key.Contains("-") ->
-            // functional-ish example
-            // let chars =
-            //     (ResizeArray<char>(),(key.ToCharArray() |> Array.pairwise))
-            //     ||> Array.fold (fun (curr) (a,b) -> 
-            //         match a with
-            //         | '-' -> if b >= 'a' && b <= 'z' then b+'a' else b
-            //         | _ -> a
-            //         |> curr.Add
-            //         curr
-            //         )
-            // new System.String(chars.ToArray())
-            let mutable newKey' = key.Clone() :?> string
-            while newKey'.Contains("-") do
-                let idx = newKey'.IndexOf('-')
-                newKey' <- newKey'.Remove(idx).Replace(newKey'[idx], (newKey'[idx]+'a'))
-            newKey'
-        | _ -> key
+    open System
+    let private toReactKey = function
+    | "class" -> "className"
+    | key when key.Contains("-") -> 
+            let arr = key.Split('-')
+            let uppers = 
+                arr[1..arr.Length]
+                |> Array.map (fun k ->
+                    let arr = k.ToCharArray()
+                    String.Concat(arr[0].ToString().ToUpper(), new String(arr[1..arr.Length]))
+                )
+            String.Join("", Array.append [|arr[0]|] uppers)
+    | key -> key
+
+    let private (|ToReactKey|)= toReactKey
+        
     let private makeStyles (styles: Style seq) =
         let styleObj = JSObject()
         for (ToReactKey key,value) in styles do
+                Console.Log key
                 styleObj[key] <- value
         styleObj
     let makeElt (name:string) (children:Node seq) =
         let rec addElts (props:System.Collections.Generic.Dictionary<string,obj> ) (children: ResizeArray<_>) (nodes: Node seq) =
-            let inline onElement node =  elToReact node |> children.Add
+            let inline onElement node =  toReact node |> children.Add
             
             nodes 
             |> Seq.iter (fun node ->
                 match node with
-                | Element ele -> onElement ele
-                | Children _children ->
-                    Seq.iter onElement _children
+                | El _ | Text _ -> onElement node
                 | Styles styles -> props["style"] <- makeStyles styles
                 | Attr(ToReactKey key,value)
                 | Event(ToReactKey key,value) ->
@@ -88,33 +76,28 @@ module React =
         let childrenArr = ResizeArray()
         addElts props childrenArr children
         let wsProps = 
-            props |> Seq.map (fun a -> (a.Key,a.Value))
+            props |> Seq.map (fun a -> (toReactKey a.Key,a.Value))
         ReactHelpers.Elt name wsProps childrenArr
-        |> (Elt >> Element)
+        |> El
         
     type ReactHtmlEngine() =
-        inherit HtmlEngine<Node>(makeElt, (Text >> Element), (fun () -> fragment []))
+        inherit HtmlEngine<Node>(makeElt, (Text), (fun () -> fragment []))
             with
                 member _.evt = Event
             
     let private Html = ReactHtmlEngine()
     let private Attr =
-        AttrEngine((fun a b -> Attr(a,b)), fun a b -> Attr(a,b))
+        AttrEngine((fun (ToReactKey a) b -> Attr(a,b)), fun (ToReactKey a) b -> Attr(a,b))
 
     let private Css =
-        CssEngine((fun a b -> Style(a,b)))
-    let style = Css
+        CssEngine((fun (ToReactKey a) b -> Style(a,b)))
+
     let html = Html
-        
+    let style = Css
+    
     type prop =
         static member attr = Attr
         static member styles = Styles
         static member children = fragment
-        static member text = (Text >> Element)
-
-        
-        
-
-    // let Event =
-    //     EventEngine(fun a b -> Event(a,b))
+        static member text = Text
     
