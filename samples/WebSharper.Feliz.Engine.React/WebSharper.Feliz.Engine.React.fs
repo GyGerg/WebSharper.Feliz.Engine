@@ -22,15 +22,18 @@ module React =
         | Styles of Style seq
         | Attr of string * AttrVal
         | Event of string * EventFn
+
+    let inline private elToReact (node:ElementNode) =
+        match node with
+        | Text txt -> Html.text txt
+        | Elt el -> el
     let toReact (node:Node) =
         match node with
-        | Element (Text txt) -> Html.text txt
-        | Element (Elt el) -> el
+        | Element elt -> elToReact elt
         | _ -> failwithf "Not a React element"
         
     let asNode = Elt >> Element
-    let private styles = Styles
-    let fragment (x: Node seq) =
+    let fragment x =
         x
         |> Seq.choose (function
             | Element (Text txt) -> (Html.text >> Some) txt
@@ -60,26 +63,23 @@ module React =
                 newKey' <- newKey'.Remove(idx).Replace(newKey'[idx], (newKey'[idx]+'a'))
             newKey'
         | _ -> key
-            
     let private makeStyles (styles: Style seq) =
         let styleObj = JSObject()
         for (ToReactKey key,value) in styles do
                 styleObj[key] <- value
         styleObj
-            
     let makeElt (name:string) (children:Node seq) =
         let rec addElts (props:System.Collections.Generic.Dictionary<string,obj> ) (children: ResizeArray<_>) (nodes: Node seq) =
-            let onElement = function
-                | Text txt -> (toReact >> children.Add) ((Text >> Element) txt)
-                | Elt elt -> children.Add elt
+            let inline onElement node =  elToReact node |> children.Add
+            
             nodes 
             |> Seq.iter (fun node ->
                 match node with
                 | Element ele -> onElement ele
                 | Children _children ->
-                    _children |> Seq.iter onElement
+                    Seq.iter onElement _children
                 | Styles styles -> props["style"] <- makeStyles styles
-                | Attr(ToReactKey key,value) -> props[key] <- value
+                | Attr(ToReactKey key,value)
                 | Event(ToReactKey key,value) ->
                     props[key] <- value
                 )
@@ -88,8 +88,7 @@ module React =
         let childrenArr = ResizeArray()
         addElts props childrenArr children
         let wsProps = 
-            props 
-            |> Seq.map (fun a -> (a.Key,a.Value))
+            props |> Seq.map (fun a -> (a.Key,a.Value))
         ReactHelpers.Elt name wsProps childrenArr
         |> (Elt >> Element)
         
@@ -104,17 +103,14 @@ module React =
 
     let private Css =
         CssEngine((fun a b -> Style(a,b)))
-    
+    let style = Css
     let html = Html
         
     type prop =
         static member attr = Attr
-        static member style = Css
-        static member styles = styles
+        static member styles = Styles
         static member children = fragment
         static member text = (Text >> Element)
-    type ws =
-        static member event (evt: (Dom.Event -> unit) -> string*EventFn) = Event
 
         
         

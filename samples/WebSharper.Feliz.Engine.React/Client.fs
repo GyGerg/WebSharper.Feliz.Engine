@@ -13,9 +13,15 @@ module Client =
         html.div [
             prop.children [
                 html.div [
+                    prop.styles [
+                        style.displayFlex
+                        style.flexDirectionColumn
+                        style.backgroundColor Feliz.color.aliceBlue
+                    ]
                     prop.children [
                         JS.jsx """<h1>Hello there!</h1>""" |> asNode
                     ]
+                    html.evt (Html.on.progress ignore)
                     prop.text "Sample text"
                 ]
             ]
