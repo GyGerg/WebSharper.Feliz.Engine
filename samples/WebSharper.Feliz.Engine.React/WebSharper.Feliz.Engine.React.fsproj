@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>netstandard2.0</TargetFramework>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Compile Include="WebSharper.Feliz.Engine.React.fs" />
+        <None Include="wsconfig.json"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="WebSharper" Version="7.0.3.364-beta3" />
+        <PackageReference Include="WebSharper.FSharp" Version="7.0.3.364-beta3" />
+        <PackageReference Include="WebSharper.React" Version="7.0.2.364-beta3" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\..\src\WebSharper.Feliz.Engine\WebSharper.Feliz.Engine.fsproj" />
+      <ProjectReference Include="..\..\src\Feliz.Engine\Feliz.Engine.fsproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Content Include="index.html" />
+      <Compile Include="Client.fs" />
+    </ItemGroup>
+
+</Project>

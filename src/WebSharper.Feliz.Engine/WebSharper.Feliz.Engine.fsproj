@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <VersionPrefix>1.0.0</VersionPrefix>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="prelude.fs" />
+    <Compile Include="../Feliz.Engine/CssEngine.fs" />
+    <Compile Include="../Feliz.Engine/HtmlEngine.fs" />
+    <Compile Include="../Feliz.Engine/SvgEngine.fs" />
+    <Compile Include="../Feliz.Engine/AttrEngine.fs" />
+    <None Include="wsconfig.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="WebSharper" Version="7.0.3.364-beta3" />
+    <PackageReference Include="WebSharper.FSharp" Version="7.0.3.364-beta3" />
+  </ItemGroup>
+</Project>
